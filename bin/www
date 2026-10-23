@@ -4,16 +4,17 @@
 // El archivo .env lo genera el pipeline en el servidor a partir del
 // variable group demo-calidad; en local se copia de .env.example.
 require("dotenv").config();
+const fs = require("fs");
 const app = require("../src/app");
 const { version } = require("../package.json");
+
+function log(msg) { fs.writeSync(process.stdout.fd, msg + "\n"); }
 
 const PORT = Number(process.env.PORT) || 3000;
 
 const server = app.listen(PORT, () => {
   const entorno = process.env.NODE_ENV || "development";
-  console.log(
-    `DemoCalidad v${version} iniciando en http://localhost:${PORT} (entorno: ${entorno})`
-  );
+  log(`DemoCalidad v${version} iniciando en http://localhost:${PORT} (entorno: ${entorno})`);
 });
 
 process.on("SIGINT", () => {
