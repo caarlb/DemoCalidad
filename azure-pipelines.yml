@@ -135,8 +135,10 @@ stages:
                     Expand-Archive -Path $zip.FullName -DestinationPath $temp -Force
                     if (-not (Test-Path "$temp\bin\www")) { throw 'El artefacto no contiene bin\www' }
 
+                    # PM2 escribe avisos en stderr. La redireccion va dentro de
+                    # cmd para que PowerShell no los trate como error terminante.
                     Write-Host '3/6 Deteniendo la version actual'
-                    pm2 stop $pm2Name 2>$null | Out-Null
+                    cmd /c "pm2 stop $pm2Name >nul 2>&1"
 
                     Write-Host '4/6 Reemplazando archivos'
                     $backup = "$dest`_old"
@@ -156,7 +158,8 @@ stages:
                     Write-Host ("   PORT={0}  NODE_ENV={1}" -f $puerto, $entorno)
 
                     Write-Host '6/6 Levantando y verificando el servicio'
-                    pm2 start "$dest\ecosystem.config.js" | Out-Null
+                    cmd /c "pm2 start $dest\ecosystem.config.js 2>&1"
+                    if ($LASTEXITCODE -ne 0) { throw "PM2 no pudo iniciar el servicio (codigo $LASTEXITCODE)" }
                     Start-Sleep -Seconds 3
                     $salud = Invoke-RestMethod -Uri "http://localhost:$puerto/api/health" -TimeoutSec 15
                     Write-Host ("Servicio {0}, version {1}" -f $salud.estado, $salud.version)
