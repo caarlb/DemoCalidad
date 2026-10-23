@@ -1,0 +1,165 @@
+# ---------------------------------------------------------------
+# Pipeline de integración y despliegue continuo del cotizador.
+#   1) Build: una máquina limpia de Microsoft instala, prueba y empaqueta.
+#   2) Deploy: el servidor de la cooperativa recibe el paquete y lo publica.
+#
+# La configuración del servidor (puerto y entorno) - variable group demo-calidad.#
+# ---------------------------------------------------------------
+variables:
+  - group: demo-calidad
+# ---------------------------------------------------------------
+# DISPARADORES
+# El pipeline corre cuando llega un cambio a main.
+# ---------------------------------------------------------------
+trigger:
+  branches:
+    include:
+      - main
+
+stages:
+  # ===============================================================
+  # ETAPA 1: BUILD — compilar, probar y empaquetar
+  # Corre en un agente administrado por Microsoft: cada ejecución
+  # empieza en una máquina limpia, sin restos de la anterior.
+  # ===============================================================
+  - stage: Build
+    displayName: Compilar y probar
+    jobs:
+      - job: BuildJob
+        pool:
+          vmImage: windows-latest
+        steps:
+          # Trae el código del repositorio a la máquina del agente.
+          - checkout: self
+            clean: 'true'
+
+          # Instala Node.js 20.x, la misma versión con la que se desarrolló.
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: Instalar Node.js 20
+
+          # npm ci instala exactamente las versiones del package-lock.json.
+          # todos compilan con las mismas dependencias.
+          - script: npm ci
+            displayName: Instalar dependencias
+
+          # Ejecucion de las pruebas definidas 
+          # continueOnError deja que el paso siguiente publique el informe          
+          - script: npm test
+            displayName: Ejecutar pruebas con Jest
+            continueOnError: 'true'
+
+          # Sube el informe de pruebas a la ejecución en el pipeline.                    
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: test-results/results.xml
+              failTaskOnFailedTests: true
+              failTaskOnMissingResultsFile: true
+              testRunTitle: Pruebas DemoCalidad
+            displayName: Publicar resultados de pruebas
+
+          # Limpi archivos y dependencias de desarrollo antes de empaquetar
+          - script: npm prune --omit=dev
+            displayName: Quitar dependencias de desarrollo
+
+          # Junta en una carpeta solo los archivos que se van a publicar.
+          # El .env no va aquí porque se genera en el servidor desde el variable group.
+          - task: CopyFiles@2
+            inputs:
+              Contents: |
+                bin/**
+                src/**
+                public/**
+                package.json
+                package-lock.json
+                node_modules/**
+                ecosystem.config.js
+              TargetFolder: $(Build.ArtifactStagingDirectory)/deploy
+            displayName: Preparar archivos del artefacto
+
+          # Comprime la carpeta en un ZIP para que viaje como un solo archivo.
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: $(Build.ArtifactStagingDirectory)/deploy
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/democalidad-$(Build.BuildId).zip
+            displayName: Comprimir artefacto
+
+          # Guarda el ZIP como artefacto de esta ejecución (democalidad-drop).
+          # Queda disponible para descargar y para que lo use la etapa Deploy.
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/democalidad-$(Build.BuildId).zip
+              artifact: democalidad-drop
+            displayName: Publicar artefacto
+
+  # ===============================================================
+  # ETAPA 2: DEPLOY — publicar en el servidor
+  # Corre en el agente autohospedado del servidor (pool Default):
+  # ===============================================================
+  - stage: Deploy
+    displayName: Desplegar al servidor
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployAlServidor
+        pool:
+          name: Default
+        # El environment agrupa el destino y deja historial de despliegues.
+        environment:
+          name: demo-calidad
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Baja el ZIP que produjo la etapa Build.
+                - download: current
+                  artifact: democalidad-drop
+
+                - powershell: |
+                    $ErrorActionPreference = 'Stop'
+                    $dest    = 'E:\Servicios\ServiciosNode\DemoCalidad'
+                    $temp    = 'E:\Servicios\ServiciosNode\DemoCalidad_temp'
+                    $pm2Name = 'DemoCalidad'
+
+                    Write-Host '1/6 Verificando carpeta destino'
+                    New-Item -ItemType Directory -Path $dest -Force | Out-Null
+
+                    Write-Host '2/6 Extrayendo artefacto'
+                    if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+                    New-Item -ItemType Directory -Path $temp -Force | Out-Null
+                    $zip = Get-ChildItem '$(Pipeline.Workspace)\democalidad-drop' -Filter *.zip | Select-Object -First 1
+                    Expand-Archive -Path $zip.FullName -DestinationPath $temp -Force
+                    if (-not (Test-Path "$temp\bin\www")) { throw 'El artefacto no contiene bin\www' }
+
+                    Write-Host '3/6 Deteniendo la version actual'
+                    pm2 stop $pm2Name 2>$null | Out-Null
+
+                    Write-Host '4/6 Reemplazando archivos'
+                    $backup = "$dest`_old"
+                    if (Test-Path $backup) { Remove-Item $backup -Recurse -Force }
+                    if (Test-Path "$dest\bin") {
+                      Rename-Item $dest $backup
+                      New-Item -ItemType Directory -Path $dest -Force | Out-Null
+                    }
+                    Get-ChildItem $temp -Force | Move-Item -Destination $dest -Force
+                    Remove-Item $temp -Recurse -Force
+
+                    Write-Host '5/6 Generando .env desde el variable group demo-calidad'                    
+                    $puerto  = if ($env:PORT)     { $env:PORT }     else { '3000' }
+                    $entorno = if ($env:NODE_ENV) { $env:NODE_ENV } else { 'production' }
+                    $contenido = "PORT=$puerto`nNODE_ENV=$entorno"
+                    Set-Content -Path "$dest\.env" -Value $contenido -Encoding ASCII
+                    Write-Host ("   PORT={0}  NODE_ENV={1}" -f $puerto, $entorno)
+
+                    Write-Host '6/6 Levantando y verificando el servicio'
+                    pm2 start "$dest\ecosystem.config.js" | Out-Null
+                    Start-Sleep -Seconds 3
+                    $salud = Invoke-RestMethod -Uri "http://localhost:$puerto/api/health" -TimeoutSec 15
+                    Write-Host ("Servicio {0}, version {1}" -f $salud.estado, $salud.version)
+                    if ($salud.estado -ne 'ok') { throw 'El servicio no respondio correctamente' }
+                  displayName: Desplegar y verificar el servicio

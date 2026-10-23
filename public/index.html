@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DemoCalidad - Cotizador</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="tarjeta">
+    <h1>Cotizador DemoCalidad</h1>
+    <p class="subtitulo">Ejercicio de práctica para la demostración de CI/CD con Azure DevOps.</p>
+
+    <form id="formulario">
+      <label for="producto">Producto</label>
+      <select id="producto">
+        <option value="cuaderno">Cuaderno profesional — Q 49.90</option>
+        <option value="audifonos">Audífonos inalámbricos — Q 249.00</option>
+        <option value="teclado">Teclado mecánico — Q 399.00</option>
+      </select>
+
+      <label for="cantidad">Cantidad (1 a 99)</label>
+      <input id="cantidad" type="number" min="1" max="99" value="1" />
+
+      <label for="descuento">Descuento (0 a 30 %)</label>
+      <input id="descuento" type="number" min="0" max="30" value="0" />
+
+      <button type="submit">Calcular cotización</button>
+    </form>
+
+    <section id="resultado" class="oculto">
+      <h2>Resultado</h2>
+      <p id="detalle"></p>
+      <table>
+        <tbody>
+          <tr><td>Subtotal</td><td id="subtotal"></td></tr>
+          <tr><td>Ahorro</td><td id="ahorro"></td></tr>
+          <tr class="total"><td>Total</td><td id="total"></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <p id="error" class="error oculto"></p>
+
+    <section class="actividad">
+      <h2>Actividad</h2>
+      <ul id="registro"></ul>
+    </section>
+
+    <footer>
+      <span>DemoCalidad · </span><span id="version">versión desconocida</span>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+// bin/www — Punto de entrada del servicio.
+// Sigue el patron de los servicios Express del ecosistema:
+// la aplicacion vive en src/app.js y aqui solo se abre el puerto.
+// El archivo .env lo genera el pipeline en el servidor a partir del
+// variable group demo-calidad; en local se copia de .env.example.
+require("dotenv").config();
+const app = require("../src/app");
+const { version } = require("../package.json");
+
+const PORT = Number(process.env.PORT) || 3000;
+
+const server = app.listen(PORT, () => {
+  const entorno = process.env.NODE_ENV || "development";
+  console.log(
+    `DemoCalidad v${version} iniciando en http://localhost:${PORT} (entorno: ${entorno})`
+  );
+});
+
+process.on("SIGINT", () => {
+  server.close(() => process.exit(0));
+});

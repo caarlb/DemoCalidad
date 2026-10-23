@@ -1,0 +1,125 @@
+/* style.css — Presentacion del cotizador. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.tarjeta {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  max-width: 520px;
+  width: 100%;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  color: #1f4e79;
+}
+
+.subtitulo {
+  margin: 0 0 1.5rem;
+  color: #555;
+}
+
+label {
+  display: block;
+  margin: 1rem 0 0.25rem;
+  font-weight: 600;
+}
+
+select,
+input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+}
+
+button {
+  margin-top: 1.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  background: #1f4e79;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #163c5e;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+td {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.total td {
+  font-weight: 700;
+  border-bottom: none;
+  font-size: 1.1rem;
+}
+
+.oculto {
+  display: none;
+}
+
+.error {
+  color: #b00020;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+footer {
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  color: #777;
+}
+
+/* Panel de actividad: muestra en la pagina lo que va pasando. */
+.actividad {
+  margin-top: 1.5rem;
+  border-top: 1px solid #e5e5e5;
+  padding-top: 0.75rem;
+}
+
+.actividad h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #1f4e79;
+}
+
+#registro {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 140px;
+  overflow-y: auto;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
+  color: #444;
+}
+
+#registro li {
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed #eee;
+}
