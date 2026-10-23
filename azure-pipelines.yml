@@ -5,9 +5,6 @@
 #
 # La configuración del servidor (puerto y entorno) - variable group demo-calidad.#
 # ---------------------------------------------------------------
-variables:
-  - group: demo-calidad
-# ---------------------------------------------------------------
 # DISPARADORES
 # El pipeline corre cuando llega un cambio a main.
 # ---------------------------------------------------------------
@@ -104,6 +101,8 @@ stages:
   - stage: Deploy
     displayName: Desplegar al servidor
     dependsOn: Build
+    variables:
+      - group: demo-calidad
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - deployment: DeployAlServidor

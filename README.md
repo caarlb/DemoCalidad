@@ -78,7 +78,9 @@ falta otro puerto, se crea el `.env` a mano en la carpeta destino.
 
 1. Crear el proyecto en la organización y subir este repositorio a Azure Repos.
 2. En **Pipelines > Library**, crear el variable group `demo-calidad` con dos
-   variables: `PORT` = `3000` y `NODE_ENV` = `production`.
+   variables: `PORT` = `3000` y `NODE_ENV` = `production`. El pipeline lo
+   referencia dentro de la etapa Deploy, que es donde se usa; así Build no
+   hereda `NODE_ENV=production` y `npm ci` instala también Jest.
 3. En **Pipelines > Environments**, crear el environment `demo-calidad` (sin
    aprobaciones para la demostración).
 4. Crear el pipeline apuntando al archivo `azure-pipelines.yml` del repositorio.
