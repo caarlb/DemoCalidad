@@ -49,7 +49,7 @@ function calcularCotizacion(entrada) {
 
   const subtotal = redondear(producto.precio * cantidad);
   const ahorro = redondear((subtotal * descuento) / 100);
-  const total = redondear(subtotal + ahorro);
+  const total = redondear(subtotal - ahorro);
 
   return {
     producto: producto.nombre,
